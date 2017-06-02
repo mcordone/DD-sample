@@ -1,0 +1,100 @@
+import com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransformer
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+    }
+}
+
+group 'com.aol.advertising'
+version = '1.0-SNAPSHOT'
+jar.archiveName = 'forecast.jar'
+sourceCompatibility = 1.8
+
+apply plugin: 'pmd'
+apply plugin: "jacoco"
+apply plugin: 'com.github.johnrengelman.shadow'
+
+def env_ = project.hasProperty('env') ? project.getProperty('env') : 'dev'
+
+configurations.all {
+    // check for updates every build
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Deals-Forecast', 'Implementation-Version': version
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+        resources {
+            srcDir 'src/main/java'
+        }
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.12'
+    distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
+}
+
+//dependency versions
+def v_oval = '1.85'
+
+dependencies {
+    compile 'org.mockito:mockito-core:1.10.19'
+    compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.6.4'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.6.4'
+    compile group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: '2.21'
+    compile 'org.glassfish.jersey.core:jersey-client:2.21'
+    compile 'org.mybatis:mybatis-spring:1.2.2'
+    compile 'org.mybatis:mybatis:3.2.8'
+    compile 'org.springframework:spring-beans:4.1.0.RELEASE'
+    compile 'org.springframework:spring-test:4.1.0.RELEASE'
+    compile 'org.springframework:spring-context:4.1.0.RELEASE'
+    compile 'org.springframework:spring-tx:4.1.0.RELEASE'
+    compile 'org.springframework:spring-jdbc:4.1.0.RELEASE'
+    compile 'com.oracle:ojdbc6:11.2.0.3'
+    compile group: 'com.aol.advertising', name: 'deals-discovery-commons', version: '1.0-SNAPSHOT', changing: true
+    compile group: 'net.sf.oval', name: 'oval', version: v_oval
+    compile group: 'commons-collections', name: 'commons-collections', version: '3.2'
+    compile group: 'commons-lang', name: 'commons-lang', version: '2.6'
+    compile group: 'org.apache.maven.plugins', name: 'maven-shade-plugin', version: '2.4.3'
+    compile group: 'com.amazonaws', name: 'aws-lambda-java-log4j', version: '1.0.0'
+    compile 'com.amazonaws:aws-lambda-java-core:1.1.0'
+    compile 'com.amazonaws:aws-lambda-java-events:1.1.0'
+    compile 'org.slf4j:slf4j-simple:1.7.12'
+    testCompile 'org.slf4j:slf4j-api:1.7.12'
+    //testCompile 'org.slf4j:slf4j-log4j12:1.7.12'
+    testCompile 'org.slf4j:jcl-over-slf4j:1.7.12'
+    testCompile 'javax:javaee-api:7.0'
+    compile 'org.projectlombok:lombok:1.16.6'
+}
+
+shadowJar {
+    transform(ServiceFileTransformer){
+        path='META-INF'
+        include 'spring.*'
+    }
+}
+
+task buildZip(type: Zip) {
+    from compileJava
+    from processResources
+    into('lib') {
+        from configurations.runtime
+    }
+}
+
+//build.dependsOn buildZip

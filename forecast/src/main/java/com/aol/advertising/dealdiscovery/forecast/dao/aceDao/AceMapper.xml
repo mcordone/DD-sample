@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aol.advertising.dealdiscovery.forecast.dao.aceDao.AceMapper">
+    <!-- cache queries for 50 mins -->
+    <cache flushInterval="3000000" />
+
+    <resultMap id="publisherMapping" type="com.aol.advertising.dealdiscovery.forecast.domain.ace.Group">
+        <id property="groupName" column="PUBLISHER"/>
+
+        <collection property="deals" column="PUBLISHER" ofType="String" select="readDealsByPublisher">
+            <result property="dealId" column="DEAL_ID" />
+            <result property="providerId" column="PROVIDER_ID" />
+            <result property="adserviceId" column="ADSERVICE_ID" />
+        </collection>
+    </resultMap>
+
+    <resultMap id="dealMapping" type="com.aol.advertising.dealdiscovery.forecast.domain.ace.Deal">
+        <result property="dealId" column="DEAL_ID"/>
+        <result property="providerId" column="PROVIDER_ID"/>
+        <result property="adserviceId" column="ADSERVICE_ID"/>
+    </resultMap>
+
+    <resultMap id="countryMapping" type="com.aol.advertising.dealdiscovery.forecast.domain.es.CountryBid">
+        <result property="elementId" column="elements_id"/>
+        <result property="countryName" column="elements_name"/>
+    </resultMap>
+    
+    <resultMap id="packageMapping" type="com.aol.advertising.dealdiscovery.forecast.domain.ace.Group">
+        <id property="groupName" column="TYPE_DISPLAY"/>
+		
+        <collection property="deals" column="TYPE_VALUE" ofType="String" select="readDealsByPackage">
+            <result property="dealId" column="DEAL_ID" />
+            <result property="providerId" column="PROVIDER_ID" />
+            <result property="adserviceId" column="ADSERVICE_ID" />
+        </collection>
+    </resultMap>
+    
+
+    <select id="readAllPublishers" resultMap="publisherMapping" useCache="false" >
+        SELECT UNIQUE
+        PUBLISHER
+        FROM deal.v_rtb_deal d
+        WHERE d.DELETED_IND = 0
+        AND d.INTERNAL_ONLY = 1
+        AND d.DISCOVERABLE = 1
+        AND PUBLISHER is not null
+        AND d.PACKAGE = 0 
+    </select>
+
+    <select id="readDealsByPublisher" resultMap="dealMapping" useCache="false" fetchSize="1000">
+        SELECT UNIQUE
+        d.DEAL_ID, d.PROVIDER_ID, d.ADSERVICE_ID
+        from deal.v_rtb_deal d
+        WHERE UPPER(d.PUBLISHER) = UPPER(#{publisher})
+        AND d.DELETED_IND = 0
+        AND d.INTERNAL_ONLY = 1
+        AND d.DISCOVERABLE = 1
+    </select>
+
+    <select id="readAllCountries" resultMap="countryMapping" useCache="false" >
+        SELECT elements_id, elements_name
+        FROM ACE.T_ELEMENTS
+        WHERE elements_type_id = 1
+        AND active = 'Y'
+    </select>
+    
+	<select id="readAllPackages" resultMap="packageMapping" useCache="false" >
+        SELECT TYPE_DISPLAY, TYPE_VALUE
+        FROM deal.T_TYPES
+        WHERE DELETED_IND = 0
+        AND TYPE_GROUP_ID = 6
+    </select>
+    
+    <select id="readDealsByPackage" resultMap="dealMapping" useCache="false">
+        SELECT UNIQUE 
+        d.DEAL_ID, d.PROVIDER_ID, d.ADSERVICE_ID
+        from deal.v_rtb_deal d
+        JOIN deal.T_TYPES_ASSOC tta
+        ON d.RTB_DEAL_ID = tta.RTB_DEAL_ID
+        WHERE d.DELETED_IND = 0
+        AND tta.DELETED_IND = 0
+        AND d.INTERNAL_ONLY = 1
+        AND d.DISCOVERABLE = 1
+        AND tta.TYPE_GROUP_ID = 6
+        AND tta.type_value = #{typeValue}
+    </select>
+    
+</mapper>
